@@ -32,6 +32,7 @@
       font-family: 'Inter', sans-serif;
       color: var(--text);
       overflow: hidden;
+      overscroll-behavior: none;
     }
 
     /* ===== BACKGROUNDS ===== */
@@ -131,8 +132,10 @@
     #app {
       position: relative; z-index: 1;
       height: 100vh;
+      height: 100dvh;
       display: flex; flex-direction: column;
       max-width: 480px; margin: 0 auto;
+      overflow: hidden;
     }
 
     /* ===== HEADER ===== */
@@ -169,10 +172,12 @@
 
     /* ===== SCROLL CONTAINER ===== */
     #scroll-body {
-      flex: 1; overflow-y: auto; overflow-x: hidden;
+      flex: 1; overflow-y: scroll; overflow-x: hidden;
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 80px;
+      padding-bottom: 100px;
+      min-height: 0;
+      touch-action: pan-y;
     }
     #scroll-body::-webkit-scrollbar { display: none; }
 
