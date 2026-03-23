@@ -939,15 +939,41 @@ function checkRainAndNotify() {
   if (!weatherData || Notification.permission !== 'granted') return;
   const hourly = weatherData.hourly;
   if (!hourly) return;
-  const next3 = hourly.precipitation_probability.slice(0, 3);
-  const maxP = Math.max(...next3);
-  if (maxP >= 60) {
-    new Notification('🌧️ Hujan Akan Datang!', {
-      body: `Kemungkinan hujan ${maxP}% dalam 3 jam ke depan. Siapkan payung!`,
-      icon: './cuaca-icon.svg',
-      tag: 'rain-alert',
-      renotify: true
-    });
+
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // Cari index jam sekarang di data hourly
+  let currentIdx = -1;
+  for (let i = 0; i < hourly.time.length; i++) {
+    const t = new Date(hourly.time[i]);
+    if (t.getDate() === now.getDate() && t.getHours() === currentHour) {
+      currentIdx = i;
+      break;
+    }
+  }
+  if (currentIdx === -1) return;
+
+  // Cek 3 jam ke depan (jam+1, jam+2, jam+3)
+  for (let offset = 1; offset <= 3; offset++) {
+    const idx = currentIdx + offset;
+    if (idx >= hourly.time.length) break;
+
+    const prob = hourly.precipitation_probability[idx];
+    if (prob >= 60) {
+      const rainTime = new Date(hourly.time[idx]);
+      const jamHujan = `${String(rainTime.getHours()).padStart(2,'0')}:00`;
+      const sisaJam = offset === 1 ? '1 jam lagi' : `${offset} jam lagi`;
+
+      new Notification('🌧️ Hujan Akan Datang!', {
+        body: `Hujan ${prob}% sekitar jam ${jamHujan} (${sisaJam}). Siapkan payung sekarang!`,
+        icon: './cuaca-icon.svg',
+        tag: 'rain-alert',
+        renotify: true,
+        vibrate: [200, 100, 200]
+      });
+      break; // Cukup kirim 1 notifikasi untuk hujan terdekat
+    }
   }
 }
 
