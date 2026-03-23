@@ -142,24 +142,47 @@ async function checkRainAndNotify() {
     const cache = await caches.open(WEATHER_CACHE);
     const keys = await cache.keys();
     for (const req of keys) {
-      if (req.url.includes('open-meteo.com')) {
-        const res = await cache.match(req);
-        if (!res) continue;
-        const data = await res.json();
-        const hourly = data.hourly;
-        if (hourly?.precipitation_probability) {
-          const next3h = hourly.precipitation_probability.slice(0, 3);
-          const maxProb = Math.max(...next3h);
-          if (maxProb >= 60) {
-            self.registration.showNotification('🌧️ Hujan Akan Datang!', {
-              body: `Kemungkinan hujan ${maxProb}% dalam 3 jam ke depan. Siapkan payung!`,
-              icon: './cuaca-icon.svg',
-              badge: './cuaca-icon.svg',
-              tag: 'rain-warning',
-              renotify: true,
-              vibrate: [200, 100, 200]
-            });
-          }
+      if (!req.url.includes('open-meteo.com')) continue;
+      const res = await cache.match(req);
+      if (!res) continue;
+      const data = await res.json();
+      const hourly = data.hourly;
+      if (!hourly?.precipitation_probability) continue;
+
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      // Cari index jam sekarang
+      let currentIdx = -1;
+      for (let i = 0; i < hourly.time.length; i++) {
+        const t = new Date(hourly.time[i]);
+        if (t.getDate() === now.getDate() && t.getHours() === currentHour) {
+          currentIdx = i;
+          break;
+        }
+      }
+      if (currentIdx === -1) continue;
+
+      // Cek 3 jam ke depan
+      for (let offset = 1; offset <= 3; offset++) {
+        const idx = currentIdx + offset;
+        if (idx >= hourly.time.length) break;
+
+        const prob = hourly.precipitation_probability[idx];
+        if (prob >= 60) {
+          const rainTime = new Date(hourly.time[idx]);
+          const jamHujan = `${String(rainTime.getHours()).padStart(2,'0')}:00`;
+          const sisaJam = offset === 1 ? '1 jam lagi' : `${offset} jam lagi`;
+
+          await self.registration.showNotification('🌧️ Hujan Akan Datang!', {
+            body: `Hujan ${prob}% sekitar jam ${jamHujan} (${sisaJam}). Siapkan payung sekarang!`,
+            icon: './cuaca-icon.svg',
+            badge: './cuaca-icon.svg',
+            tag: 'rain-warning',
+            renotify: true,
+            vibrate: [200, 100, 200]
+          });
+          break;
         }
       }
     }
